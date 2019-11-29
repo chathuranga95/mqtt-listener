@@ -56,7 +56,9 @@ public class ADLListenerService extends Service {
             public void messageArrived(String topic, MqttMessage mqttMessage) {
                 String msg = mqttMessage.toString();
                 Log.w("Debug", msg);
-                pushNotification(msg, ADLListenerService.this);
+                if(msg.equals("Falling")){
+                    pushNotification(msg, ADLListenerService.this);
+                }
             }
 
 

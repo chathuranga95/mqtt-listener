@@ -5,9 +5,15 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,11 +25,17 @@ import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public class MainActivity extends AppCompatActivity {
 
     static NotificationManager mNotificationManager;
     MqttHelper mqttHelper;
     TextView dataReceived;
+    ListView recentActivities;
+    int recentItemCount = 10;
+    String[] activityList = new String[recentItemCount];
 
     //push notifications to the notification area
     public static void pushNotification(String msg, Context context) {
@@ -62,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
         dataReceived = findViewById(R.id.dataReceived);
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        recentActivities = findViewById(R.id.recentActivities);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel("ADL_NOTI_CHANNEL",
@@ -74,6 +87,11 @@ public class MainActivity extends AppCompatActivity {
         startMqtt();
         startBackgroundService(); // TODO: 04/11/19 start only when app minimizes or exits
 
+        getSupportActionBar().hide();
+
+//        for(int i=0; i<11;i++){
+//            updateDisplay("msg ".concat(Integer.toString(i)));
+//        }
     }
 
     private void startBackgroundService() {
@@ -100,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
             public void messageArrived(String topic, MqttMessage mqttMessage) {
                 String msg = mqttMessage.toString();
                 Log.w("Debug", msg);
-                dataReceived.setText(msg);
+                updateDisplay(msg);
             }
 
             @Override
@@ -108,5 +126,36 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    public void updateDisplay(String msg){
+        dataReceived.setText(msg);
+
+        //shift list first
+        int i = recentItemCount-2;
+        while(i>=0){
+            activityList[i+1] = activityList[i];
+            i--;
+        }
+
+        //append the activity at the front
+        activityList[0] = msg;
+
+        //update the listview
+        ArrayList<String> list = new ArrayList<>();
+        for(int j= 1; j<recentItemCount;j++){
+            list.add(activityList[j]);
+        }
+
+        if(msg.equals("Falling")){
+            dataReceived.setBackgroundResource(R.color.warningColor);
+        } else{
+            dataReceived.setBackgroundResource(R.color.defaultBack);
+        }
+
+
+        ArrayAdapter adapter = new ArrayAdapter(this,
+                R.layout.list_text, R.id.list_content, list);
+        recentActivities.setAdapter(adapter);
     }
 }
